@@ -4,9 +4,6 @@ This is the [Hex Map project](https://catlikecoding.com/unity/hex-map/), a conti
 
 Each release has its own tutorial, which you can find on the [project page](https://catlikecoding.com/unity/hex-map/).
 
-## Become My Patron
-
-Your support makes these projects and tutorials possible! If you like them and want to see more, please support me via [Patreon](https://www.patreon.com/catlikecoding) or [Ko-fi](https://ko-fi.com/catlikecoding).
 
 ## Giving Credit
 
