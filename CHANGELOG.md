@@ -5,20 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [5.2.0] - 2025-02-26
+## [5.5.0] - 2026-08-31
+
+### Changed
+
+- Upgraded to **Unity** 6000.3.23f1.
+- Upgraded **Input System** to version 1.20.0.
+- Upgraded **Visual Studio Editor** to version 2.0.28.
+- `InitializeMapJob` has become a Burst job.
+
+## [5.4.0] - 2026-07-30
+
+### Added
+
+- Experimental map generator, a duplicate of the current generator split into mock jobs.
+- Option to use the experimental generator when generating a new map.
+
+### Changed
+
+- Upgraded to **Unity** 6000.3.20f1.
+- Upgraded **Burst** to version 1.8.30.
+- Upgraded **Visual Studio Editor** to version 2.0.27. The project now uses an SLNX instead of an SLN file, requiring at least .NET 10 to be recognized by an IDE.
+- Put map generator settings in separate `MapGeneratorSettings` class.
+
+## [5.3.0] - 2026-06-10
+
+### Changed
+
+- Upgraded to **Unity** 6000.3.17f1.
+- Upgraded **Burst** to version 1.8.29.
+- Upgraded **Input System** to version 1.19.0.
+- Changed how pathfinding data is stored and when pathfinding is performed.
+
+## [5.2.0] - 2026-02-26
 
 ### Changed
 
 - Migrated Save Load menu from uGUI to UI Toolkit.
 
-## [5.1.0] - 2025-02-20
+## [5.1.0] - 2026-02-20
 
 ### Changed
 
 - Upgraded Input System to 1.18.0.
 - Migrated New Map menu from uGUI to UI Toolkit.
 
-## [5.0.0] - 2025-01-19
+## [5.0.0] - 2026-01-19
 
 ### Changed
 

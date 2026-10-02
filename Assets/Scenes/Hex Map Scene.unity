@@ -687,54 +687,6 @@ Transform:
   - {fileID: 68505628}
   m_Father: {fileID: 1067100555}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1783064676
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1783064678}
-  - component: {fileID: 1783064677}
-  m_Layer: 0
-  m_Name: GameController
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1783064677
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1783064676}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b1741a25ee79def4cad4324d55ec8b16, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GameController
-  grid: {fileID: 1571186511}
-  landFractionToWin: 0.277
-  autoSelfPlay: 1
-  secondsPerAction: 0.1
---- !u!4 &1783064678
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1783064676}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1865193394
 GameObject:
   m_ObjectHideFlags: 0
@@ -798,7 +750,7 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2019527339}
   m_Enabled: 1
-  serializedVersion: 13
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
@@ -850,7 +802,7 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
-  m_ShapeRadius: 0
+  m_ShadowRadius: 0
   m_ShadowAngle: 0
   m_LightUnit: 1
   m_LuxAtDistance: 1
@@ -929,33 +881,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   grid: {fileID: 1571186511}
-  useFixedSeed: 1
-  seed: 1208905299
-  jitterProbability: 0.25
-  chunkSizeMin: 30
-  chunkSizeMax: 100
-  highRiseProbability: 0.25
-  sinkProbability: 0.2
-  landPercentage: 50
-  waterLevel: 3
-  elevationMinimum: -2
-  elevationMaximum: 8
-  mapBorderX: 5
-  mapBorderZ: 5
-  regionBorder: 5
-  regionCount: 1
-  erosionPercentage: 50
-  startingMoisture: 0.1
-  evaporationFactor: 0.5
-  precipitationFactor: 0.25
-  runoffFactor: 0.25
-  seepageFactor: 0.25
-  windDirection: 5
-  windStrength: 4
-  riverPercentage: 10
-  extraLakeProbability: 0.25
-  lowTemperature: 0
-  highTemperature: 1
+  settings:
+    useFixedSeed: 1
+    seed: 1208905299
+    jitterProbability: 0.25
+    chunkSizeMin: 30
+    chunkSizeMax: 100
+    highRiseProbability: 0.25
+    sinkProbability: 0.2
+    landPercentage: 50
+    waterLevel: 3
+    elevationMinimum: -2
+    elevationMaximum: 8
+    mapBorderX: 5
+    mapBorderZ: 5
+    regionBorder: 5
+    regionCount: 1
+    erosionPercentage: 50
+    startingMoisture: 0.1
+    evaporationFactor: 0.5
+    precipitationFactor: 0.25
+    runoffFactor: 0.25
+    seepageFactor: 0.25
+    windDirection: 5
+    windStrength: 4
+    riverPercentage: 10
+    extraLakeProbability: 0.25
+    lowTemperature: 0
+    highTemperature: 1
+    hemisphere: 0
+    temperatureJitter: 0.1
   hemisphere: 0
   temperatureJitter: 0.1
 --- !u!4 &2056945513
@@ -1085,4 +1040,3 @@ SceneRoots:
   - {fileID: 2102140319}
   - {fileID: 2056945513}
   - {fileID: 1865193395}
-  - {fileID: 1783064678}

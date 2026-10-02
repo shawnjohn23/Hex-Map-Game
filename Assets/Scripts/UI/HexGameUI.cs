@@ -102,7 +102,7 @@ public class HexGameUI : MonoBehaviour
 	{
 		HexCell cell = grid.GetCell(
 			Camera.main.ScreenPointToRay(positionAction.ReadValue<Vector2>()));
-		if (cell)
+		if (cell && cell != currentCell)
 		{
 			currentCell = cell;
 			return true;

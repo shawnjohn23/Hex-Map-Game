@@ -9,6 +9,8 @@
 		<ui:VisualElement class="overlayPanel" style="width: 180px;">
 			<ui:Label text="Create New Map" style="align-self: center;"/>
 			<ui:Toggle
+				label="Experimental" name="Experimental" style="align-self: center;"/>
+			<ui:Toggle
 				label="Generate" name="Generate" style="align-self: center;"/>
 			<ui:Toggle
 				label="Wrapping" name="Wrapping" style="align-self: center;"/>

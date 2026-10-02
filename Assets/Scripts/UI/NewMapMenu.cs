@@ -13,6 +13,8 @@ public class NewMapMenu : MonoBehaviour
 	[SerializeField]
 	HexMapGenerator mapGenerator;
 
+	bool experimental = true;
+
 	bool generateMaps = true;
 
 	bool wrapping = true;
@@ -24,6 +26,11 @@ public class NewMapMenu : MonoBehaviour
 
 		VisualElement root = GetComponent<UIDocument>().rootVisualElement;
 		
+		var experimentalToggle = root.Q<Toggle>("Experimental");
+		experimentalToggle.value = experimental;
+		experimentalToggle.RegisterValueChangedCallback(
+			change => experimental = change.newValue);
+
 		var generateToggle = root.Q<Toggle>("Generate");
 		generateToggle.value = generateMaps;
 		generateToggle.RegisterValueChangedCallback(
@@ -50,7 +57,7 @@ public class NewMapMenu : MonoBehaviour
 	{
 		if (generateMaps)
 		{
-			mapGenerator.GenerateMap(x, z, wrapping);
+			mapGenerator.GenerateMap(x, z, wrapping, experimental);
 		}
 		else
 		{

@@ -38,7 +38,7 @@ public class HexGrid : MonoBehaviour
 	/// <summary>
 	/// Whether there currently exists a path that should be displayed.
 	/// </summary>
-	public bool HasPath => currentPathExists;
+	public bool HasPath => currentPath != null;
 
 	/// <summary>
 	/// Whether east-west wrapping is enabled.
@@ -84,10 +84,6 @@ public class HexGrid : MonoBehaviour
 	/// </summary>
 	public HexCellShaderData ShaderData => cellShaderData;
 
-	/// <summary>Faction / ownership state layer for this map (may be null
-	/// when running the plain map editor with no game in progress).</summary>
-	public FactionState Factions { get; set; }
-
 	int chunkCountX, chunkCountZ;
 
 	HexCellPriorityQueue searchFrontier;
@@ -95,7 +91,8 @@ public class HexGrid : MonoBehaviour
 	int searchFrontierPhase;
 
 	int currentPathFromIndex = -1, currentPathToIndex = -1;
-	bool currentPathExists;
+
+	List<int> currentPath;
 
 	int currentCenterColumnIndex = -1;
 
@@ -230,7 +227,6 @@ public class HexGrid : MonoBehaviour
 				CreateCell(x, z, i++);
 			}
 		}
-		Factions?.OnMapCreated(CellData.Length);
 	}
 
 	void ClearUnits()
@@ -509,7 +505,6 @@ public class HexGrid : MonoBehaviour
 		{
 			units[i].Save(writer);
 		}
-		Factions?.Save(writer);
 	}
 
 	/// <summary>
@@ -562,34 +557,19 @@ public class HexGrid : MonoBehaviour
 				HexUnit.Load(reader, this);
 			}
 		}
-		if (Factions != null &&
-			reader.BaseStream.Position < reader.BaseStream.Length)
-		{
-			Factions.Load(reader);
-		}
 
 		cellShaderData.ImmediateMode = originalImmediateMode;
 	}
 
 	/// <summary>
 	/// Get a list of cell indices representing the currently visible path.
+	/// Only valid when HasPath is true.
 	/// </summary>
 	/// <returns>The current path list, if a visible path exists.</returns>
 	public List<int> GetPath()
 	{
-		if (!currentPathExists)
-		{
-			return null;
-		}
 		List<int> path = ListPool<int>.Get();
-		for (int i = currentPathToIndex;
-			i != currentPathFromIndex;
-			i = searchData[i].pathFrom)
-		{
-			path.Add(i);
-		}
-		path.Add(currentPathFromIndex);
-		path.Reverse();
+		path.AddRange(currentPath);
 		return path;
 	}
 
@@ -613,17 +593,15 @@ public class HexGrid : MonoBehaviour
 	/// </summary>
 	public void ClearPath()
 	{
-		if (currentPathExists)
+		if (currentPath != null)
 		{
-			int currentIndex = currentPathToIndex;
-			while (currentIndex != currentPathFromIndex)
+			foreach (int i in currentPath)
 			{
-				SetLabel(currentIndex, null);
-				DisableHighlight(currentIndex);
-				currentIndex = searchData[currentIndex].pathFrom;
+				SetLabel(i, null);
+				DisableHighlight(i);
 			}
-			DisableHighlight(currentIndex);
-			currentPathExists = false;
+			ListPool<int>.Add(currentPath);
+			currentPath = null;
 		}
 		else if (currentPathFromIndex >= 0)
 		{
@@ -631,23 +609,6 @@ public class HexGrid : MonoBehaviour
 			DisableHighlight(currentPathToIndex);
 		}
 		currentPathFromIndex = currentPathToIndex = -1;
-	}
-
-	void ShowPath(int speed)
-	{
-		if (currentPathExists)
-		{
-			int currentIndex = currentPathToIndex;
-			while (currentIndex != currentPathFromIndex)
-			{
-				int turn = (searchData[currentIndex].distance - 1) / speed;
-				SetLabel(currentIndex, turn.ToString());
-				EnableHighlight(currentIndex, Color.white);
-				currentIndex = searchData[currentIndex].pathFrom;
-			}
-		}
-		EnableHighlight(currentPathFromIndex, Color.blue);
-		EnableHighlight(currentPathToIndex, Color.red);
 	}
 
 	/// <summary>
@@ -661,8 +622,25 @@ public class HexGrid : MonoBehaviour
 		ClearPath();
 		currentPathFromIndex = fromCell.Index;
 		currentPathToIndex = toCell.Index;
-		currentPathExists = Search(fromCell, toCell, unit);
-		ShowPath(unit.Speed);
+		if (Search(fromCell, toCell, unit))
+		{
+			int speed = unit.Speed;
+			currentPath = ListPool<int>.Get();
+			for (int i = currentPathToIndex;
+				i != currentPathFromIndex;
+				i = searchData[i].pathFrom)
+			{
+				int distance = searchData[i].distance;
+				currentPath.Add(i);
+				int turn = (distance - 1) / speed;
+				SetLabel(i, turn.ToString());
+				EnableHighlight(i, Color.white);
+			}
+			currentPath.Add(currentPathFromIndex);
+			currentPath.Reverse();
+		}
+		EnableHighlight(currentPathFromIndex, Color.blue);
+		EnableHighlight(currentPathToIndex, Color.red);
 	}
 
 	bool Search(HexCell fromCell, HexCell toCell, HexUnit unit)
@@ -810,8 +788,7 @@ public class HexGrid : MonoBehaviour
 		range += fromCell.Values.ViewElevation;
 		searchData[fromCell.Index] = new HexCellSearchData
 		{
-			searchPhase = searchFrontierPhase,
-			pathFrom = searchData[fromCell.Index].pathFrom
+			searchPhase = searchFrontierPhase
 		};
 		searchFrontier.Enqueue(fromCell.Index);
 		HexCoordinates fromCoordinates = fromCell.Coordinates;
@@ -846,8 +823,7 @@ public class HexGrid : MonoBehaviour
 					searchData[neighbor.Index] = new HexCellSearchData
 					{
 						searchPhase = searchFrontierPhase,
-						distance = distance,
-						pathFrom = currentData.pathFrom
+						distance = distance
 					};
 					searchFrontier.Enqueue(neighbor.Index);
 				}

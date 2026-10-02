@@ -57,15 +57,6 @@ public class HexUnit : MonoBehaviour
 	/// </summary>
 	public int Speed => 24;
 
-	/// <summary>Owner faction id (0 == neutral/unassigned).</summary>
-	public int Owner { get; set; }
-	
-	/// <summary>Movement points left this turn. Refilled by ReplenishMovement.</summary>
-	public int MovementRemaining { get; set; }
-	
-	/// <summary>Refill movement at the start of the owner's turn.</summary>
-	public void ReplenishMovement() => MovementRemaining = Speed;
-
 	/// <summary>
 	/// Vision range of the unit, in cells.
 	/// </summary>

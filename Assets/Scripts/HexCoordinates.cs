@@ -1,5 +1,6 @@
-﻿using UnityEngine;
-using System.IO;
+﻿using System.IO;
+using Unity.Mathematics;
+using UnityEngine;
 
 /// <summary>
 /// Immutable three-component hexagonal coordinates.
@@ -7,23 +8,32 @@ using System.IO;
 [System.Serializable]
 public struct HexCoordinates
 {
+	private static readonly int2[] neighborOffsets = {
+		new(0, 1), new(1, 0), new(1, -1), new(0, -1), new(-1, 0), new(-1, 1)
+	};
+
 	[SerializeField]
-	private int x, z;
+	private int2 xz;
 
 	/// <summary>
 	/// X coordinate.
 	/// </summary>
-	public readonly int X => x;
+	public readonly int X => xz.x;
 
 	/// <summary>
 	/// Z coordinate.
 	/// </summary>
-	public readonly int Z => z;
+	public readonly int Z => xz.y;
 
 	/// <summary>
 	/// Y coordinate, derived from X and Z.
 	/// </summary>
 	public readonly int Y => -X - Z;
+
+	/// <summary>
+	/// Offset coordinates.
+	/// </summary>
+	public readonly int2 OffsetCoordinates => new(X + Z / 2, Z);
 
 	/// <summary>
 	/// X position in hex space, where the distance between cell centers
@@ -37,29 +47,38 @@ public struct HexCoordinates
 	/// </summary>
 	public readonly float HexZ => Z * HexMetrics.outerToInner;
 
-	public readonly int ColumnIndex => (x + z / 2) / HexMetrics.chunkSizeX;
+	public readonly int ColumnIndex => (X + Z / 2) / HexMetrics.chunkSizeX;
 
 	/// <summary>
 	/// Create hex coordinates.
 	/// </summary>
 	/// <param name="x">X coordinate.</param>
 	/// <param name="z">Z coordinate.</param>
-	public HexCoordinates(int x, int z)
+	public HexCoordinates(int x, int z) :
+		this(new int2(x, z), HexMetrics.wrapSize) {}
+
+	/// <summary>
+	/// Create hex coordinates.
+	/// </summary>
+	/// <param name="xz">XZ coordinates.</param>
+	/// <param name="wrapSize">
+	/// Map wrap size for X dimension, zero if no wrapping.
+	/// </param>
+	public HexCoordinates(int2 xz, int wrapSize)
 	{
-		if (HexMetrics.Wrapping)
+		if (wrapSize > 0)
 		{
-			int oX = x + z / 2;
+			int oX = xz.x + xz.y / 2;
 			if (oX < 0)
 			{
-				x += HexMetrics.wrapSize;
+				xz.x += wrapSize;
 			}
-			else if (oX >= HexMetrics.wrapSize)
+			else if (oX >= wrapSize)
 			{
-				x -= HexMetrics.wrapSize;
+				xz.x -= wrapSize;
 			}
 		}
-		this.x = x;
-		this.z = z;
+		this.xz = xz;
 	}
 
 	/// <summary>
@@ -71,14 +90,14 @@ public struct HexCoordinates
 	public readonly int DistanceTo(HexCoordinates other)
 	{
 		int xy =
-			(x < other.x ? other.x - x : x - other.x) +
+			(X < other.X ? other.X - X : X - other.X) +
 			(Y < other.Y ? other.Y - Y : Y - other.Y);
 
 		if (HexMetrics.Wrapping)
 		{
-			other.x += HexMetrics.wrapSize;
+			other.xz.x += HexMetrics.wrapSize;
 			int xyWrapped =
-				(x < other.x ? other.x - x : x - other.x) +
+				(X < other.X ? other.X - X : X - other.X) +
 				(Y < other.Y ? other.Y - Y : Y - other.Y);
 			if (xyWrapped < xy)
 			{
@@ -86,9 +105,9 @@ public struct HexCoordinates
 			}
 			else
 			{
-				other.x -= 2 * HexMetrics.wrapSize;
+				other.xz.x -= 2 * HexMetrics.wrapSize;
 				xyWrapped =
-					(x < other.x ? other.x - x : x - other.x) +
+					(X < other.X ? other.X - X : X - other.X) +
 					(Y < other.Y ? other.Y - Y : Y - other.Y);
 				if (xyWrapped < xy)
 				{
@@ -97,7 +116,7 @@ public struct HexCoordinates
 			}
 		}
 
-		return (xy + (z < other.z ? other.z - z : z - other.z)) / 2;
+		return (xy + (Z < other.Z ? other.Z - Z : Z - other.Z)) / 2;
 	}
 
 	/// <summary>
@@ -106,16 +125,19 @@ public struct HexCoordinates
 	/// <param name="direction">Step direction.</param>
 	/// <returns>Coordinates.</returns>
 	public readonly HexCoordinates Step(HexDirection direction) =>
-		direction switch
-		{
-			HexDirection.NE => new HexCoordinates(x, z + 1),
-			HexDirection.E => new HexCoordinates(x + 1, z),
-			HexDirection.SE => new HexCoordinates(x + 1, z - 1),
-			HexDirection.SW => new HexCoordinates(x, z - 1),
-			HexDirection.W => new HexCoordinates(x - 1, z),
-			_ => new HexCoordinates(x - 1, z + 1)
-		};
+		Step(direction, HexMetrics.wrapSize);
 
+	/// <summary>
+	/// Return (wrapped) coordinates after a single step in a given direction.
+	/// </summary>
+	/// <param name="direction">Step direction.</param>
+	/// <param name="wrapSize">
+	/// Map wrap size for X dimension, zero if no wrapping.
+	/// </param>
+	/// <returns>Coordinates.</returns>
+	public readonly HexCoordinates Step(HexDirection direction, int wrapSize) =>
+		new(xz + neighborOffsets[(int)direction], wrapSize);
+	
 	/// <summary>
 	/// Create hex coordinates from array offset coordinates.
 	/// </summary>
@@ -183,8 +205,8 @@ public struct HexCoordinates
 	/// <param name="writer"><see cref="BinaryWriter"/> to use.</param>
 	public readonly void Save(BinaryWriter writer)
 	{
-		writer.Write(x);
-		writer.Write(z);
+		writer.Write(X);
+		writer.Write(Z);
 	}
 
 	/// <summary>
@@ -195,8 +217,8 @@ public struct HexCoordinates
 	public static HexCoordinates Load(BinaryReader reader)
 	{
 		HexCoordinates c;
-		c.x = reader.ReadInt32();
-		c.z = reader.ReadInt32();
+		c.xz.x = reader.ReadInt32();
+		c.xz.y = reader.ReadInt32();
 		return c;
 	}
 }
