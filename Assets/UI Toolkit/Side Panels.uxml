@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:ui="UnityEngine.UIElements"
+	xmlns:uie="UnityEditor.UIElements"
+	xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd">
+	<Style src="UI Styles.uss"/>
+	<ui:VisualElement
+		name="LeftPanel" class="sidePanel" style="left: 0;">
+		<ui:RadioButtonGroup
+			label="Terrain"
+			choices="---,Snd,Grs,Md,Stn,Sw"
+			value="1"
+			name="Terrain"/>
+		<ui:Toggle label="Elevation" value="true" name="ApplyElevation"/>
+		<ui:SliderInt value="0" high-value="6" name="Elevation"/>
+		<ui:Toggle label="Water" value="true" name="ApplyWaterLevel"/>
+		<ui:SliderInt value="0" high-value="6" name="WaterLevel"/>
+		<ui:RadioButtonGroup
+			label="River" choices="---,Yes,No" value="0" name="River"/>
+        <ui:RadioButtonGroup
+			label="Roads" choices="---,Yes,No" value="0" name="Roads"/>
+		<ui:Label text="Brush Size" style="align-self: center;"/>
+		<ui:SliderInt value="0" high-value="4" name="BrushSize"/>
+	</ui:VisualElement>
+	<ui:VisualElement
+		name="RightPanel" class="sidePanel" style="right: 0;">
+		<ui:Toggle label="Urban" name="ApplyUrbanLevel"/>
+		<ui:SliderInt value="0" high-value="3" name="UrbanLevel"/>
+		<ui:Toggle label="Farm" name="ApplyFarmLevel"/>
+		<ui:SliderInt value="0" high-value="3" name="FarmLevel"/>
+		<ui:Toggle label="Plant" name="ApplyPlantLevel"/>
+		<ui:SliderInt value="0" high-value="3" name="PlantLevel"/>
+		<ui:Toggle label="Special" name="ApplySpecialIndex"/>
+		<ui:SliderInt value="0" high-value="3" name="SpecialIndex"/>
+		<ui:RadioButtonGroup
+			label="Walled" choices="---,Yes,No" value="0" name="Walled"/>
+		<ui:VisualElement style="flex-direction: row;">
+			<ui:Button text="Save" name="SaveButton"/>
+			<ui:Button text="Load" name="LoadButton"/>
+		</ui:VisualElement>
+		<ui:Button text="New Map" name="NewMapButton"/>
+		<ui:Toggle label="Grid" name="Grid"/>
+		<ui:Toggle label="Edit Mode" value="true" name="EditMode"/>
+    </ui:VisualElement>
+</ui:UXML>
