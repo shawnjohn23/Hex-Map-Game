@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 /// <summary>
 /// Component that manages the game UI.
@@ -44,6 +45,12 @@ public class HexGameUI : MonoBehaviour
 
 	void Update()
 	{
+		if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+		{
+			selectedUnit = null;
+			grid.ClearPath();
+			GameState.EndTurn();
+		}
 		if (!EventSystem.current.IsPointerOverGameObject())
 		{
 			if (selectAction.WasPerformedThisFrame())
@@ -70,7 +77,10 @@ public class HexGameUI : MonoBehaviour
 		UpdateCurrentCell();
 		if (currentCell)
 		{
-			selectedUnit = currentCell.Unit;
+			HexUnit unit = currentCell.Unit;
+			selectedUnit =
+				unit && unit.Owner == GameState.CurrentPlayer &&
+				unit.CanMoveThisTurn ? unit : null;
 		}
 	}
 
@@ -93,11 +103,33 @@ public class HexGameUI : MonoBehaviour
 	{
 		if (grid.HasPath)
 		{
-			selectedUnit.Travel(grid.GetPath());
+			List<int> path = grid.GetPath();
+			int reach = 0;
+			for (int i = 1; i < path.Count; i++)
+			{
+				if (grid.SearchData[path[i]].distance > selectedUnit.MovementLeft)
+				{
+					break;
+				}
+				reach = i;
+			}
+
+			if (reach > 0)
+			{
+				Debug.Log($"Moving {reach} of {path.Count - 1} steps");
+				int cost = grid.SearchData[path[reach]].distance;
+				path.RemoveRange(reach + 1, path.Count - reach - 1);
+				selectedUnit.SpendMovement(cost);
+				selectedUnit.Travel(path);
+			}
+			else
+			{
+				ListPool<int>.Add(path);
+			}
 			grid.ClearPath();
+			selectedUnit = null;
 		}
 	}
-
 	bool UpdateCurrentCell()
 	{
 		HexCell cell = grid.GetCell(

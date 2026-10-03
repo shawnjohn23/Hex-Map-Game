@@ -32,6 +32,7 @@ public class HexMapEditor : MonoBehaviour
 
 	int activeElevation;
 	int activeWaterLevel;
+	int placeOwner;
 
 	int activeUrbanLevel, activeFarmLevel, activePlantLevel, activeSpecialIndex;
 
@@ -140,6 +141,19 @@ public class HexMapEditor : MonoBehaviour
 
     void Update()
 	{
+		if (Keyboard.current != null)
+		{
+			if (Keyboard.current.digit1Key.wasPressedThisFrame)
+			{
+				placeOwner = 0;
+				Debug.Log("Placing Player 1 units");
+			}
+			else if (Keyboard.current.digit2Key.wasPressedThisFrame)
+			{
+				placeOwner = 1;
+				Debug.Log("Placing Player 2 units");
+			}
+		}
 		if (!EventSystem.current.IsPointerOverGameObject())
 		{
 			if (interactAction.inProgress)
@@ -180,9 +194,9 @@ public class HexMapEditor : MonoBehaviour
 		HexCell cell = GetCellUnderCursor();
 		if (cell && !cell.Unit)
 		{
-			hexGrid.AddUnit(
-				Instantiate(HexUnit.unitPrefab), cell, Random.Range(0f, 360f)
-			);
+			HexUnit unit = Instantiate(HexUnit.unitPrefab);
+			unit.Owner = placeOwner;
+			hexGrid.AddUnit(unit, cell, Random.Range(0f, 360f));
 		}
 	}
 

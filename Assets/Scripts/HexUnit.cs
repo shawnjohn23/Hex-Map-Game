@@ -10,6 +10,44 @@ public class HexUnit : MonoBehaviour
 {
 	const float rotationSpeed = 180f;
 	const float travelSpeed = 4f;
+	
+	int movementLeft, movementLeftTurn = -1;
+	
+	public bool CanMoveThisTurn
+	{
+		get
+		{
+			HexCell location = Location;
+			for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++)
+			{
+				if (location.TryGetNeighbor(d, out HexCell neighbor))
+				{
+					int cost = GetMoveCost(location, neighbor, d);
+					if (cost >= 0 && cost <= MovementLeft)
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+	}
+
+	public int MovementLeft
+	{
+		get
+		{
+			if (movementLeftTurn != GameState.Turn)
+			{
+				movementLeftTurn = GameState.Turn;
+				movementLeft = Speed;
+			}
+			return movementLeft;
+		}
+	}
+
+	public void SpendMovement(int cost) =>
+		movementLeft = Mathf.Max(0, MovementLeft - cost);
 
 	public static HexUnit unitPrefab;
 
@@ -296,6 +334,21 @@ public class HexUnit : MonoBehaviour
 				Grid.IncreaseVisibility(location, VisionRange);
 				Grid.DecreaseVisibility(currentTravelLocation, VisionRange);
 				currentTravelLocationCellIndex = -1;
+			}
+		}
+	}
+	static readonly Color[] ownerColors = { Color.blue, Color.red };
+	int owner;
+
+	public int Owner
+	{
+		get => owner;
+		set
+		{
+			owner = value;
+			foreach (Renderer r in GetComponentsInChildren<Renderer>())
+			{
+				r.material.color = ownerColors[value % ownerColors.Length];
 			}
 		}
 	}
