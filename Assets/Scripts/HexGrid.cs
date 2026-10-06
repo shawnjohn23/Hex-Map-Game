@@ -16,6 +16,9 @@ public class HexGrid : MonoBehaviour
 
 	[SerializeField]
 	HexUnit unitPrefab;
+	
+	[SerializeField]
+	City cityPrefab;
 
 	[SerializeField]
 	Texture2D noiseSource;
@@ -65,6 +68,8 @@ public class HexGrid : MonoBehaviour
 	public HexUnit[] CellUnits
 	{ get; private set; }
 
+	public City[] CellCities
+	{ get; private set; }
 	HexCellSearchData[] searchData;
 
 	/// <summary>
@@ -100,6 +105,9 @@ public class HexGrid : MonoBehaviour
 	List<HexUnit> units = new();
 #pragma warning restore IDE0044 // Add readonly modifier
 
+	readonly List<City> cities = new();
+	public IReadOnlyList<City> Cities => cities;   // new line 109
+
 	HexCellShaderData cellShaderData;
 
 	void Awake()
@@ -129,13 +137,35 @@ public class HexGrid : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Remove a unit from the map.
+	/// Remove a unit from the map. 
 	/// </summary>
 	/// <param name="unit">The unit to remove.</param>
 	public void RemoveUnit(HexUnit unit)
 	{
 		units.Remove(unit);
 		unit.Die();
+	}
+	
+	
+	/// <summary>
+	/// Spawn a City 
+	/// Clear a City 
+	public City SpawnCity(HexCell location)
+	{
+		City city = Instantiate(cityPrefab);
+		cities.Add(city);
+		city.Grid = this;
+		city.Location = location;
+		return city;
+	}
+
+	public void ClearCities()
+	{
+		for (int i = 0; i < cities.Count; i++)
+		{
+			cities[i].Die();
+		}
+		cities.Clear();
 	}
 
 	/// <summary>
@@ -168,6 +198,7 @@ public class HexGrid : MonoBehaviour
 
 		ClearPath();
 		ClearUnits();
+		ClearCities();
 		if (columns != null)
 		{
 			for (int i = 0; i < columns.Length; i++)
@@ -215,6 +246,7 @@ public class HexGrid : MonoBehaviour
 		CellData = new HexCellData[CellCountZ * CellCountX];
 		CellPositions = new Vector3[CellData.Length];
 		cellUIRects = new RectTransform[CellData.Length];
+		CellCities = new City[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		CellUnits = new HexUnit[CellData.Length];
 		searchData = new HexCellSearchData[CellData.Length];
@@ -447,6 +479,11 @@ public class HexGrid : MonoBehaviour
 		if (unit)
 		{
 			unit.ValidateLocation();
+		}
+		City city = CellCities[cellIndex];
+		if (city)
+		{
+			city.ValidateLocation();
 		}
 	}
 
@@ -774,6 +811,11 @@ public class HexGrid : MonoBehaviour
 		{
 			HexUnit unit = units[i];
 			IncreaseVisibility(unit.Location, unit.VisionRange);
+		}
+		for (int i = 0; i < cities.Count; i++)
+		{
+			City city = cities[i];
+			IncreaseVisibility(city.Location, city.VisionRange);
 		}
 	}
 

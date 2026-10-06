@@ -499,6 +499,7 @@ MonoBehaviour:
   cellLabelPrefab: {fileID: 11470134, guid: f68794ca03b6f4510b9a5bd6ee9ba2f4, type: 3}
   chunkPrefab: {fileID: 114000010052569294, guid: 7622d007cafd044a1b1189c0b93d2912, type: 3}
   unitPrefab: {fileID: 114701888605048992, guid: 5661a1efcb9464721b4db3f694ded559, type: 3}
+  cityPrefab: {fileID: 924787005280907463, guid: aab4f6b5ec84c2441a290bcd7f865c37, type: 3}
   noiseSource: {fileID: 2800000, guid: 38701cdeb1fb9427cbb585f917aa59cb, type: 3}
   seed: 1234
 --- !u!4 &1571186512
@@ -724,6 +725,53 @@ Transform:
   - {fileID: 576920446}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2008563371
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2008563373}
+  - component: {fileID: 2008563374}
+  m_Layer: 0
+  m_Name: GameController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2008563373
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2008563371}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2008563374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2008563371}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02c50311f7ff9b744b5ca504ee05b6c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameController
+  grid: {fileID: 1571186511}
+  minimumDistance: 4
+  candidateCount: 4
 --- !u!1 &2019527339
 GameObject:
   m_ObjectHideFlags: 0
@@ -911,8 +959,6 @@ MonoBehaviour:
     highTemperature: 1
     hemisphere: 0
     temperatureJitter: 0.1
-  hemisphere: 0
-  temperatureJitter: 0.1
 --- !u!4 &2056945513
 Transform:
   m_ObjectHideFlags: 0
@@ -1040,3 +1086,4 @@ SceneRoots:
   - {fileID: 2102140319}
   - {fileID: 2056945513}
   - {fileID: 1865193395}
+  - {fileID: 2008563373}
