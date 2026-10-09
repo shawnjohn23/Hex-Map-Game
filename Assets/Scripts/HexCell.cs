@@ -254,6 +254,18 @@ public struct HexCell
 		get => grid.CellCities[index];
 		set => grid.CellCities[index] = value;
 	}
+	
+	
+	public readonly int Owner => grid.CellOwners[index];
+
+	public readonly void SetOwner(int owner)
+	{
+		if (grid.CellOwners[index] != owner)
+		{
+			grid.CellOwners[index] = owner;
+			Refresh();
+		}
+	}
 	/// <summary>
 	/// Set the outgoing river.
 	/// </summary>

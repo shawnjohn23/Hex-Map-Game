@@ -13,6 +13,11 @@ public class GameController : MonoBehaviour
 	[SerializeField]
 	int candidateCount = 4;
 
+	// Debug: press T over a cell during Setup to drop a candidate city
+	// there, ignoring the legality rules (e.g. to test rivers and roads).
+	[SerializeField]
+	bool debugKeys = true;
+
 	void Start()
 	{
 		PlaceCandidates();
@@ -20,6 +25,17 @@ public class GameController : MonoBehaviour
 
 	void Update()
 	{
+		if (debugKeys && GameState.Phase == GamePhase.Setup &&
+			Keyboard.current != null && Mouse.current != null &&
+			Keyboard.current.tKey.wasPressedThisFrame)
+		{
+			HexCell target = grid.GetCell(Camera.main.ScreenPointToRay(
+				Mouse.current.position.ReadValue()));
+			if (target && !target.City && !target.Values.IsUnderwater)
+			{
+				grid.SpawnCity(target);
+			}
+		}
 		// Re-roll candidates, only allowed before anyone has claimed.
 		if (Keyboard.current != null &&
 			Keyboard.current.gKey.wasPressedThisFrame &&
@@ -87,7 +103,13 @@ public class GameController : MonoBehaviour
 	public bool IsLegalStartCell(HexCell cell) =>
 		cell.Flags.HasAll(HexFlags.Explorable) &&
 		!cell.Values.IsUnderwater &&
-		!cell.Unit && !cell.City;
+		!cell.Unit && !cell.City &&
+		// Clean cell so the urban feature can show the city's houses.
+		cell.Values.UrbanLevel == 0 &&
+		cell.Values.FarmLevel == 0 &&
+		cell.Values.PlantLevel == 0 &&
+		cell.Values.SpecialIndex == 0 &&
+		cell.Flags.HasNone(HexFlags.Roads);
 
 	int DistanceToNearestCity(HexCell cell)
 	{

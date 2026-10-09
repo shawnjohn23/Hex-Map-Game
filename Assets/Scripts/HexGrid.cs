@@ -70,6 +70,9 @@ public class HexGrid : MonoBehaviour
 
 	public City[] CellCities
 	{ get; private set; }
+	
+	public int[] CellOwners
+	{ get; private set; }
 	HexCellSearchData[] searchData;
 
 	/// <summary>
@@ -259,6 +262,9 @@ public class HexGrid : MonoBehaviour
 		CellPositions = new Vector3[CellData.Length];
 		cellUIRects = new RectTransform[CellData.Length];
 		CellCities = new City[CellData.Length];
+		CellOwners = new int[CellData.Length];
+		System.Array.Fill(CellOwners, PlayerColors.Neutral);
+		cellGridChunks = new HexGridChunk[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		CellUnits = new HexUnit[CellData.Length];
 		searchData = new HexCellSearchData[CellData.Length];
