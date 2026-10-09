@@ -18,6 +18,19 @@ public static class GameState
 
 	static int claimsMade;
 
+	/// <summary>Resources per player, indexed by player.</summary>
+	public static Stockpile[] Stockpiles { get; private set; } = NewStockpiles();
+
+	static Stockpile[] NewStockpiles()
+	{
+		var result = new Stockpile[PlayerCount];
+		for (int i = 0; i < result.Length; i++)
+		{
+			result[i] = new Stockpile();
+		}
+		return result;
+	}
+
 	[RuntimeInitializeOnLoadMethod(
 		RuntimeInitializeLoadType.SubsystemRegistration)]
 	static void ResetState()
@@ -26,6 +39,7 @@ public static class GameState
 		CurrentPlayer = SetupFirstPlayer;
 		Turn = 1;
 		claimsMade = 0;
+		Stockpiles = NewStockpiles();
 	}
 
 	static int NextPlayer() => (CurrentPlayer + 1) % PlayerCount;
@@ -46,6 +60,13 @@ public static class GameState
 			Phase = GamePhase.Playing;
 			CurrentPlayer = PlayFirstPlayer;
 			Turn = 1;
+			foreach (Stockpile stockpile in Stockpiles)
+			{
+				// Temporary starting resources for testing.
+				stockpile.Add(ResourceType.Stone, 5);
+				stockpile.Add(ResourceType.Wood, 5);
+				stockpile.Add(ResourceType.Grain, 5);
+			}
 			Debug.Log($"Setup complete. Turn {Turn}: Player {CurrentPlayer + 1}");
 		}
 		else
@@ -70,7 +91,8 @@ public static class GameState
 		{
 			Turn++;
 		}
-		Debug.Log($"Turn {Turn}: Player {CurrentPlayer + 1}");
+		Debug.Log($"Turn {Turn}: Player {CurrentPlayer + 1} " +
+			$"[{Stockpiles[CurrentPlayer]}]");
 		return true;
 	}
 }
