@@ -8,15 +8,23 @@ public class GameController : MonoBehaviour
 	HexGrid grid;
 
 	[SerializeField]
-	int minimumDistance = 40;
+	int minimumDistance = 4;
 
 	[SerializeField]
 	int candidateCount = 4;
 
+	void Start()
+	{
+		PlaceCandidates();
+	}
+
 	void Update()
 	{
+		// Re-roll candidates, only allowed before anyone has claimed.
 		if (Keyboard.current != null &&
-			Keyboard.current.gKey.wasPressedThisFrame)
+			Keyboard.current.gKey.wasPressedThisFrame &&
+			GameState.Phase == GamePhase.Setup &&
+			!AnyClaimed())
 		{
 			PlaceCandidates();
 		}
@@ -30,12 +38,50 @@ public class GameController : MonoBehaviour
 			HexCell cell = PickStartCell();
 			if (!cell)
 			{
-				int nearest = DistanceToNearestCity(cell);
-				grid.SpawnCity(cell);
-				Debug.Log($"Candidate {i}: {cell.Coordinates}, nearest other city: {nearest}");
+				Debug.LogWarning("No legal start cell found.");
+				break;
 			}
+			// Measure BEFORE spawning, otherwise the nearest city is itself (0).
+			int nearest = DistanceToNearestCity(cell);
 			grid.SpawnCity(cell);
+			Debug.Log(
+				$"Candidate {i}: {cell.Coordinates}, nearest other city: {nearest}");
 		}
+	}
+
+	/// <summary>
+	/// Try to claim the city on a cell for the current player (Setup only).
+	/// </summary>
+	public bool TryClaim(HexCell cell)
+	{
+		if (GameState.Phase != GamePhase.Setup || !cell)
+		{
+			return false;
+		}
+		City city = cell.City;
+		if (!city || city.State != CityState.Candidate)
+		{
+			return false;
+		}
+		city.Claim(GameState.CurrentPlayer);
+		GameState.CompleteClaim();
+		if (GameState.Phase == GamePhase.Playing)
+		{
+			grid.RemoveUnclaimedCities();
+		}
+		return true;
+	}
+
+	bool AnyClaimed()
+	{
+		foreach (City city in grid.Cities)
+		{
+			if (city.State == CityState.Claimed)
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public bool IsLegalStartCell(HexCell cell) =>
@@ -86,6 +132,8 @@ public class GameController : MonoBehaviour
 		{
 			return farEnough[Random.Range(0, farEnough.Count)];
 		}
+		Debug.LogWarning(
+			$"Fallback used: best distance {farthestDistance} < minimum {minimumDistance}");
 		return farthest;
 	}
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
@@ -10,6 +10,9 @@ public class HexGameUI : MonoBehaviour
 {
 	[SerializeField]
 	HexGrid grid;
+
+	[SerializeField]
+	GameController gameController;
 
 	HexCell currentCell;
 
@@ -45,11 +48,15 @@ public class HexGameUI : MonoBehaviour
 
 	void Update()
 	{
-		if (Keyboard.current != null && Keyboard.current.enterKey.wasPressedThisFrame)
+		if (Keyboard.current != null &&
+			Keyboard.current.enterKey.wasPressedThisFrame)
 		{
-			selectedUnit = null;
-			grid.ClearPath();
-			GameState.EndTurn();
+			// Only accepted during Playing, and only for the current player.
+			if (GameState.EndTurn(GameState.CurrentPlayer))
+			{
+				selectedUnit = null;
+				grid.ClearPath();
+			}
 		}
 		if (!EventSystem.current.IsPointerOverGameObject())
 		{
@@ -75,6 +82,15 @@ public class HexGameUI : MonoBehaviour
 	{
 		grid.ClearPath();
 		UpdateCurrentCell();
+		if (GameState.Phase == GamePhase.Setup)
+		{
+			selectedUnit = null;
+			if (currentCell)
+			{
+				gameController.TryClaim(currentCell);
+			}
+			return;
+		}
 		if (currentCell)
 		{
 			HexUnit unit = currentCell.Unit;
@@ -130,6 +146,7 @@ public class HexGameUI : MonoBehaviour
 			selectedUnit = null;
 		}
 	}
+
 	bool UpdateCurrentCell()
 	{
 		HexCell cell = grid.GetCell(

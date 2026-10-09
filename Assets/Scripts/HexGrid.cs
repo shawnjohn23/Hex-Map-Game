@@ -167,6 +167,18 @@ public class HexGrid : MonoBehaviour
 		}
 		cities.Clear();
 	}
+	
+	public void RemoveUnclaimedCities()
+	{
+		for (int i = cities.Count - 1; i >= 0; i--)
+		{
+			if (cities[i].State == CityState.Candidate)
+			{
+				cities[i].Die();
+				cities.RemoveAt(i);
+			}
+		}
+	}
 
 	/// <summary>
 	/// Make a game object a child of a map column.
