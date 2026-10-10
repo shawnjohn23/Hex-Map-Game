@@ -80,11 +80,82 @@ public class GameController : MonoBehaviour
 			return false;
 		}
 		city.Claim(GameState.CurrentPlayer);
+		// Temporary starting resources for testing.
+		city.Storage.Add(ResourceType.Stone, 5);
+		city.Storage.Add(ResourceType.Wood, 5);
+		city.Storage.Add(ResourceType.Grain, 6);
+		city.Storage.Add(ResourceType.Meat, 4);
 		GameState.CompleteClaim();
 		if (GameState.Phase == GamePhase.Playing)
 		{
 			grid.RemoveUnclaimedCities();
 		}
+		return true;
+	}
+
+	/// <summary>Per-turn upkeep for one player's cities.</summary>
+	public void RunUpkeep(int player)
+	{
+		foreach (City city in grid.Cities)
+		{
+			if (city.State == CityState.Claimed && city.Owner == player)
+			{
+				city.Feed();
+			}
+		}
+	}
+
+	/// <summary>A forest pops can be sent to: land, trees, no city.</summary>
+	public bool IsWorkableForest(HexCell cell) =>
+		cell && !cell.Values.IsUnderwater &&
+		cell.Values.PlantLevel > 0 && !cell.City;
+
+	/// <summary>The player's closest city that has idle pops, or null.</summary>
+	public City ClosestCityWithIdle(HexCell target, int player)
+	{
+		City best = null;
+		int bestDistance = int.MaxValue;
+		foreach (City city in grid.Cities)
+		{
+			if (city.State != CityState.Claimed || city.Owner != player ||
+				city.Idle <= 0)
+			{
+				continue;
+			}
+			int d = target.Coordinates.DistanceTo(city.Location.Coordinates);
+			if (d < bestDistance)
+			{
+				bestDistance = d;
+				best = city;
+			}
+		}
+		return best;
+	}
+
+	/// <summary>
+	/// Send count idle pops from home to work the forest on a cell.
+	/// Pops from the same home merge into one party.
+	/// </summary>
+	public bool TryAssign(HexCell cell, City home, int count)
+	{
+		if (!IsWorkableForest(cell) || !home || count < 1 || count > home.Idle)
+		{
+			return false;
+		}
+		List<WorkParty> list =
+			grid.CellWorkers[cell.Index] ??= new List<WorkParty>();
+		WorkParty party = list.Find(p => p.Home == home);
+		if (party != null)
+		{
+			party.Count += count;
+		}
+		else
+		{
+			party = new WorkParty(home, cell.Index, count);
+			list.Add(party);
+			home.Parties.Add(party);
+		}
+		party.Refresh();
 		return true;
 	}
 

@@ -18,6 +18,13 @@ public class HexGameUI : MonoBehaviour
 
 	HexUnit selectedUnit;
 
+	string hoverText;
+
+	// A forest the player clicked, waiting for a number and Space.
+	HexCell assignCell;
+	City assignCity;
+	int assignCount;
+
 	InputAction selectAction, commandAction, positionAction;
 
 	void Awake()
@@ -48,18 +55,23 @@ public class HexGameUI : MonoBehaviour
 
 	void Update()
 	{
+		hoverText = null;
 		if (Keyboard.current != null &&
 			Keyboard.current.enterKey.wasPressedThisFrame)
 		{
 			// Only accepted during Playing, and only for the current player.
-			if (GameState.EndTurn(GameState.CurrentPlayer))
+			int endingPlayer = GameState.CurrentPlayer;
+			if (GameState.EndTurn(endingPlayer))
 			{
+				gameController.RunUpkeep(endingPlayer);
+				CancelAssignment();
 				selectedUnit = null;
 				grid.ClearPath();
 			}
 		}
 		if (!EventSystem.current.IsPointerOverGameObject())
 		{
+			UpdateHover();
 			if (selectAction.WasPerformedThisFrame())
 			{
 				DoSelection();
@@ -76,6 +88,82 @@ public class HexGameUI : MonoBehaviour
 				}
 			}
 		}
+		UpdateAssignment();
+	}
+
+	void UpdateHover()
+	{
+		if (GameState.Phase != GamePhase.Playing)
+		{
+			return;
+		}
+		HexCell cell = grid.GetCell(
+			Camera.main.ScreenPointToRay(positionAction.ReadValue<Vector2>()));
+		if (!cell)
+		{
+			return;
+		}
+		City city = cell.City;
+		if (city && city.State == CityState.Claimed &&
+			city.Owner == GameState.CurrentPlayer)
+		{
+			hoverText = $"Pop {city.Population}/{city.PopulationCapacity} " +
+				$"(weak {city.WeakPop}, idle {city.Idle})\n" +
+				$"Storage: {city.Storage}";
+		}
+	}
+
+	// Digits 1-9 pick how many pops, Space confirms, Esc cancels.
+	// (Arrow keys, WASD, Q and E are taken by the camera.)
+	void UpdateAssignment()
+	{
+		if (!assignCell || Keyboard.current == null)
+		{
+			return;
+		}
+		if (!assignCity)
+		{
+			CancelAssignment();
+			return;
+		}
+		Keyboard keyboard = Keyboard.current;
+		for (int i = 1; i <= 9; i++)
+		{
+			if (keyboard[Key.Digit1 + (i - 1)].wasPressedThisFrame)
+			{
+				assignCount = Mathf.Min(i, assignCity.Idle);
+			}
+		}
+		if (keyboard.spaceKey.wasPressedThisFrame)
+		{
+			gameController.TryAssign(assignCell, assignCity, assignCount);
+			CancelAssignment();
+			return;
+		}
+		if (keyboard.escapeKey.wasPressedThisFrame)
+		{
+			CancelAssignment();
+			return;
+		}
+		hoverText = $"Assign {assignCount} of {assignCity.Idle} idle pops\n" +
+			"1-9 number, Space confirm, Esc cancel";
+	}
+
+	void CancelAssignment()
+	{
+		assignCell = default;
+		assignCity = null;
+	}
+
+	// Placeholder IMGUI tooltip, no scene setup needed.
+	void OnGUI()
+	{
+		if (hoverText == null || Mouse.current == null)
+		{
+			return;
+		}
+		Vector2 m = Mouse.current.position.ReadValue();
+		GUI.Box(new Rect(m.x + 16, Screen.height - m.y + 16, 300, 48), hoverText);
 	}
 
 	void DoSelection()
@@ -91,12 +179,23 @@ public class HexGameUI : MonoBehaviour
 			}
 			return;
 		}
+		CancelAssignment();
 		if (currentCell)
 		{
 			HexUnit unit = currentCell.Unit;
 			selectedUnit =
 				unit && unit.Owner == GameState.CurrentPlayer &&
 				unit.CanMoveThisTurn ? unit : null;
+			if (!selectedUnit && gameController.IsWorkableForest(currentCell))
+			{
+				assignCity = gameController.ClosestCityWithIdle(
+					currentCell, GameState.CurrentPlayer);
+				if (assignCity)
+				{
+					assignCell = currentCell;
+					assignCount = 1;
+				}
+			}
 		}
 	}
 

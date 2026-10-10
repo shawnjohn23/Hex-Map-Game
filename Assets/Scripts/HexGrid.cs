@@ -73,6 +73,11 @@ public class HexGrid : MonoBehaviour
 	
 	public int[] CellOwners
 	{ get; private set; }
+	
+	/// <summary>Work parties on each cell (forest now; farms, nodes later).</summary>
+	public List<WorkParty>[] CellWorkers
+	{ get; private set; }
+	
 	HexCellSearchData[] searchData;
 
 	/// <summary>
@@ -264,6 +269,7 @@ public class HexGrid : MonoBehaviour
 		CellCities = new City[CellData.Length];
 		CellOwners = new int[CellData.Length];
 		System.Array.Fill(CellOwners, PlayerColors.Neutral);
+		CellWorkers = new List<WorkParty>[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		CellUnits = new HexUnit[CellData.Length];

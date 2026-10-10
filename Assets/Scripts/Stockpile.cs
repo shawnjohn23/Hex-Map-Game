@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 
 // Add new resources at the END of this list (existing values keep their index).
-public enum ResourceType { Stone, Wood, Grain, Gold }
+public enum ResourceType { Stone, Wood, Grain, Gold, Meat }
 
 /// <summary>
 /// One player's resources: a plain int per ResourceType, no scene objects.
