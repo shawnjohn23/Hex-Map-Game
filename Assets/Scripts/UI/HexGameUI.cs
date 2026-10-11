@@ -8,6 +8,10 @@ using System.Collections.Generic;
 /// </summary>
 public class HexGameUI : MonoBehaviour
 {
+	const float MenuWidth = 280f;
+	const float RowHeight = 26f;
+	const float Pad = 8f;
+
 	[SerializeField]
 	HexGrid grid;
 
@@ -20,10 +24,14 @@ public class HexGameUI : MonoBehaviour
 
 	string hoverText;
 
-	// A forest the player clicked, waiting for a number and Space.
-	HexCell assignCell;
-	City assignCity;
-	int assignCount;
+	// The forest whose action menu is open (default = no menu).
+	HexCell menuCell;
+	int sendCount = 1;
+	Rect menuRect;
+
+	// IMGUI is tiny on big screens; this scales all of it (tooltip, HUD, menu).
+	[SerializeField]
+	float uiScale = 1.6f;
 
 	InputAction selectAction, commandAction, positionAction;
 
@@ -56,20 +64,26 @@ public class HexGameUI : MonoBehaviour
 	void Update()
 	{
 		hoverText = null;
-		if (Keyboard.current != null &&
-			Keyboard.current.enterKey.wasPressedThisFrame)
+		if (Keyboard.current != null)
 		{
-			// Only accepted during Playing, and only for the current player.
-			int endingPlayer = GameState.CurrentPlayer;
-			if (GameState.EndTurn(endingPlayer))
+			if (Keyboard.current.enterKey.wasPressedThisFrame)
 			{
-				gameController.RunUpkeep(endingPlayer);
-				CancelAssignment();
-				selectedUnit = null;
-				grid.ClearPath();
+				// Only accepted during Playing, and only for the current player.
+				int endingPlayer = GameState.CurrentPlayer;
+				if (GameState.EndTurn(endingPlayer))
+				{
+					gameController.RunUpkeep(endingPlayer);
+					CloseMenu();
+					selectedUnit = null;
+					grid.ClearPath();
+				}
+			}
+			if (menuCell && Keyboard.current.escapeKey.wasPressedThisFrame)
+			{
+				CloseMenu();
 			}
 		}
-		if (!EventSystem.current.IsPointerOverGameObject())
+		if (!EventSystem.current.IsPointerOverGameObject() && !PointerOverMenu())
 		{
 			UpdateHover();
 			if (selectAction.WasPerformedThisFrame())
@@ -88,7 +102,6 @@ public class HexGameUI : MonoBehaviour
 				}
 			}
 		}
-		UpdateAssignment();
 	}
 
 	void UpdateHover()
@@ -108,62 +121,170 @@ public class HexGameUI : MonoBehaviour
 			city.Owner == GameState.CurrentPlayer)
 		{
 			hoverText = $"Pop {city.Population}/{city.PopulationCapacity} " +
-				$"(weak {city.WeakPop}, idle {city.Idle})\n" +
+				$"(weak {city.WeakPop}, idle {city.Idle}, " +
+				$"walking home {city.ReturningPops})\n" +
 				$"Storage: {city.Storage}";
 		}
 	}
 
-	// Digits 1-9 pick how many pops, Space confirms, Esc cancels.
-	// (Arrow keys, WASD, Q and E are taken by the camera.)
-	void UpdateAssignment()
+	void CloseMenu() => menuCell = default;
+
+	// IMGUI doesn't block Input System clicks, so check the menu ourselves.
+	bool PointerOverMenu()
 	{
-		if (!assignCell || Keyboard.current == null)
+		if (!menuCell || Mouse.current == null)
 		{
-			return;
+			return false;
 		}
-		if (!assignCity)
-		{
-			CancelAssignment();
-			return;
-		}
-		Keyboard keyboard = Keyboard.current;
-		for (int i = 1; i <= 9; i++)
-		{
-			if (keyboard[Key.Digit1 + (i - 1)].wasPressedThisFrame)
-			{
-				assignCount = Mathf.Min(i, assignCity.Idle);
-			}
-		}
-		if (keyboard.spaceKey.wasPressedThisFrame)
-		{
-			gameController.TryAssign(assignCell, assignCity, assignCount);
-			CancelAssignment();
-			return;
-		}
-		if (keyboard.escapeKey.wasPressedThisFrame)
-		{
-			CancelAssignment();
-			return;
-		}
-		hoverText = $"Assign {assignCount} of {assignCity.Idle} idle pops\n" +
-			"1-9 number, Space confirm, Esc cancel";
+		Vector2 m = Mouse.current.position.ReadValue() / uiScale;
+		return menuRect.Contains(
+			new Vector2(m.x, Screen.height / uiScale - m.y));
 	}
 
-	void CancelAssignment()
-	{
-		assignCell = default;
-		assignCity = null;
-	}
-
-	// Placeholder IMGUI tooltip, no scene setup needed.
+	// Placeholder IMGUI, no scene setup needed.
 	void OnGUI()
 	{
-		if (hoverText == null || Mouse.current == null)
+		GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
+		if (GameState.Phase == GamePhase.Playing)
+		{
+			GUI.Box(new Rect(10, 10, 260, 52),
+				$"Player {GameState.CurrentPlayer + 1}, turn {GameState.Turn}\n" +
+				$"Free pops: {gameController.FreePops(GameState.CurrentPlayer)}");
+			DrawMenu();
+		}
+		if (hoverText != null && Mouse.current != null)
+		{
+			Vector2 m = Mouse.current.position.ReadValue() / uiScale;
+			GUI.Box(new Rect(m.x + 16, Screen.height / uiScale - m.y + 16,
+				400, 60), hoverText);
+		}
+	}
+
+	// Explicit rects (no GUILayout), so changing the party list in the
+	// middle of a click can't cause layout errors.
+	void DrawMenu()
+	{
+		if (!menuCell)
 		{
 			return;
 		}
-		Vector2 m = Mouse.current.position.ReadValue();
-		GUI.Box(new Rect(m.x + 16, Screen.height - m.y + 16, 300, 48), hoverText);
+		int player = GameState.CurrentPlayer;
+		if (!gameController.IsWorkable(menuCell, player))
+		{
+			DrawBuildMenu();
+			return;
+		}
+		// Room left on the site (farm level, or 2 for a forest).
+		int room = gameController.MaxWorkers(menuCell) -
+			gameController.WorkersAt(menuCell);
+		City sender = room > 0 ?
+			gameController.ClosestCityWithIdle(menuCell, player) : null;
+		List<WorkParty> parties = gameController.PartiesAt(menuCell, player);
+
+		float height = Pad * 2 + RowHeight * (3 + parties.Count);
+		menuRect = new Rect(10, 70, MenuWidth, height);
+		GUI.Box(menuRect, GUIContent.none);
+
+		float x = menuRect.x + Pad;
+		float y = menuRect.y + Pad;
+		float w = MenuWidth - Pad * 2;
+		float h = RowHeight - 2;
+
+		bool isFarm = menuCell.Values.PlantLevel <= 0 &&
+			menuCell.Values.FarmLevel > 0;
+		GUI.Label(new Rect(x, y, w, RowHeight),
+			(isFarm ? $"Farm, level {menuCell.Values.FarmLevel}" :
+			$"Forest, level {menuCell.Values.PlantLevel}") +
+			$" ({gameController.WorkersAt(menuCell)}/" +
+			$"{gameController.MaxWorkers(menuCell)} pops)");
+		y += RowHeight;
+
+		if (sender)
+		{
+			int most = Mathf.Min(sender.Idle, room);
+			sendCount = Mathf.Clamp(sendCount, 1, most);
+			if (GUI.Button(new Rect(x, y, 28, h), "-"))
+			{
+				sendCount = Mathf.Max(1, sendCount - 1);
+			}
+			GUI.Label(new Rect(x + 36, y, 24, RowHeight), sendCount.ToString());
+			if (GUI.Button(new Rect(x + 60, y, 28, h), "+"))
+			{
+				sendCount = Mathf.Min(most, sendCount + 1);
+			}
+			if (GUI.Button(new Rect(x + 96, y, w - 96, h),
+				$"Send {sendCount} (of {sender.Idle} idle)"))
+			{
+				gameController.TryAssign(menuCell, sender, sendCount);
+			}
+		}
+		else
+		{
+			GUI.Label(new Rect(x, y, w, RowHeight),
+				room > 0 ? "No idle pops available" : "Site is full");
+		}
+		y += RowHeight;
+
+		foreach (WorkParty party in parties)
+		{
+			GUI.Label(new Rect(x, y, 110, RowHeight), $"{party.Working}/{party.Count} working");
+			if (GUI.Button(new Rect(x + 110, y, 70, h), "Recall 1"))
+			{
+				gameController.TryUnassign(menuCell, party.Home, 1);
+			}
+			if (GUI.Button(new Rect(x + 184, y, w - 184, h), "All"))
+			{
+				gameController.TryUnassign(menuCell, party.Home, party.Count);
+			}
+			y += RowHeight;
+		}
+
+		if (GUI.Button(new Rect(x, y, w, h), "Close"))
+		{
+			CloseMenu();
+		}
+	}
+
+	static readonly BuildKind[] BuildOptions = { BuildKind.Farm, BuildKind.House };
+
+	// Menu for an empty, legal building cell: pick what to build there.
+	void DrawBuildMenu()
+	{
+		int player = GameState.CurrentPlayer;
+		City sender = gameController.ClosestCityWithIdle(menuCell, player);
+
+		menuRect = new Rect(10, 70, MenuWidth,
+			Pad * 2 + RowHeight * (2 + BuildOptions.Length));
+		GUI.Box(menuRect, GUIContent.none);
+
+		float x = menuRect.x + Pad;
+		float y = menuRect.y + Pad;
+		float w = MenuWidth - Pad * 2;
+		float h = RowHeight - 2;
+
+		GUI.Label(new Rect(x, y, w, RowHeight), sender ?
+			$"Empty land (builder from {sender.Idle} idle)" :
+			"Empty land: no idle pops to build");
+		y += RowHeight;
+
+		foreach (BuildKind kind in BuildOptions)
+		{
+			int cost = ConstructionSite.WoodCost(kind);
+			GUI.enabled = sender &&
+				sender.Storage.CanAfford(ResourceType.Wood, cost);
+			if (GUI.Button(new Rect(x, y, w, h), $"Build {kind} ({cost} wood)"))
+			{
+				gameController.TryBuild(menuCell, kind, player);
+				CloseMenu();
+			}
+			GUI.enabled = true;
+			y += RowHeight;
+		}
+
+		if (GUI.Button(new Rect(x, y, w, h), "Close"))
+		{
+			CloseMenu();
+		}
 	}
 
 	void DoSelection()
@@ -179,22 +300,22 @@ public class HexGameUI : MonoBehaviour
 			}
 			return;
 		}
-		CancelAssignment();
+		CloseMenu();
 		if (currentCell)
 		{
+			// Debug: why can't I build here? (delete once building works)
+			Debug.Log($"Clicked {currentCell.Coordinates}: build blocker = " +
+				$"{gameController.BuildBlocker(currentCell, GameState.CurrentPlayer) ?? "none"}");
 			HexUnit unit = currentCell.Unit;
 			selectedUnit =
 				unit && unit.Owner == GameState.CurrentPlayer &&
 				unit.CanMoveThisTurn ? unit : null;
-			if (!selectedUnit && gameController.IsWorkableForest(currentCell))
+			if (!selectedUnit &&
+				(gameController.IsWorkable(currentCell, GameState.CurrentPlayer) ||
+				gameController.IsBuildable(currentCell, GameState.CurrentPlayer)))
 			{
-				assignCity = gameController.ClosestCityWithIdle(
-					currentCell, GameState.CurrentPlayer);
-				if (assignCity)
-				{
-					assignCell = currentCell;
-					assignCount = 1;
-				}
+				menuCell = currentCell;
+				sendCount = 1;
 			}
 		}
 	}

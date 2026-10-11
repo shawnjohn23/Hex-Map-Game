@@ -78,6 +78,14 @@ public class HexGrid : MonoBehaviour
 	public List<WorkParty>[] CellWorkers
 	{ get; private set; }
 	
+	/// <summary>Pop-turns harvested on each cell since its forest last lost a level.</summary>
+	public int[] CellHarvest
+	{ get; private set; }
+	
+	/// <summary>The construction site on each cell, or null.</summary>
+	public ConstructionSite[] CellSites
+	{ get; private set; }
+	
 	HexCellSearchData[] searchData;
 
 	/// <summary>
@@ -270,6 +278,8 @@ public class HexGrid : MonoBehaviour
 		CellOwners = new int[CellData.Length];
 		System.Array.Fill(CellOwners, PlayerColors.Neutral);
 		CellWorkers = new List<WorkParty>[CellData.Length];
+		CellHarvest = new int[CellData.Length];
+		CellSites = new ConstructionSite[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		cellGridChunks = new HexGridChunk[CellData.Length];
 		CellUnits = new HexUnit[CellData.Length];

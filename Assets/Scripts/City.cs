@@ -32,12 +32,73 @@ public class City : MonoBehaviour
 			{
 				total += party.Count;
 			}
+			foreach (ConstructionSite site in Sites)
+			{
+				total += site.Builders;
+			}
 			return total;
 		}
 	}
 
-	/// <summary>Pops not assigned to any work site. Always derived.</summary>
-	public int Idle => Population - Assigned;
+	/// <summary>Construction sites this city sent builders to.</summary>
+	public List<ConstructionSite> Sites { get; } = new();
+
+	struct Returning
+	{
+		public int Count;
+		public int TurnsLeft;
+	}
+
+	readonly List<Returning> returning = new();
+
+	/// <summary>Pops walking home; not available until they arrive.</summary>
+	public int ReturningPops
+	{
+		get
+		{
+			int total = 0;
+			foreach (Returning r in returning)
+			{
+				total += r.Count;
+			}
+			return total;
+		}
+	}
+
+	/// <summary>Pops not working, building or walking home. Always derived.</summary>
+	public int Idle => Mathf.Max(0, Population - Assigned - ReturningPops);
+
+	public void SendHome(int count, int turns)
+	{
+		if (count > 0)
+		{
+			returning.Add(new Returning
+			{
+				Count = count,
+				TurnsLeft = Mathf.Max(1, turns)
+			});
+		}
+	}
+
+	/// <summary>Once per turn: walkers get closer; at 0 they are idle again.</summary>
+	public void TickReturning()
+	{
+		for (int i = returning.Count - 1; i >= 0; i--)
+		{
+			Returning r = returning[i];
+			r.TurnsLeft--;
+			if (r.TurnsLeft <= 0)
+			{
+				returning.RemoveAt(i);
+			}
+			else
+			{
+				returning[i] = r;
+			}
+		}
+	}
+
+	public void AddHousing(int capacity) => PopulationCapacity += capacity;
 
 	/// <summary>Grain plus meat: what pops can eat.</summary>
 	public int Food =>
@@ -47,6 +108,9 @@ public class City : MonoBehaviour
 
 	int locationCellIndex = -1;
 	int owner = PlayerColors.Neutral;
+	
+	// Consecutive turns with enough food and some to spare (growth rule).
+	int surplusTurns;
 
 	public HexCell Location
 	{
@@ -115,6 +179,21 @@ public class City : MonoBehaviour
 		HealthyPop = (HealthyPop - healthyUnfed) + weakFed;
 		WeakPop = healthyUnfed;
 		TrimParties();
+
+		// Growth: 6 turns in a row of enough food and some to spare.
+		if (unfed == 0 && Food >= Population)
+		{
+			surplusTurns = Mathf.Min(surplusTurns + 1, 6);
+			if (surplusTurns >= 6 && Population < PopulationCapacity)
+			{
+				HealthyPop++;
+				surplusTurns = 0;
+			}
+		}
+		else
+		{
+			surplusTurns = 0;
+		}
 		Debug.Log($"Player {Owner + 1} city fed: pop {Population} " +
 			$"(healthy {HealthyPop}, weak {WeakPop}), {weakUnfed} died, " +
 			$"grain {Storage.Get(ResourceType.Grain)}, " +
@@ -125,6 +204,22 @@ public class City : MonoBehaviour
 	void TrimParties()
 	{
 		int excess = Assigned - Population;
+		// Pops walking home die first.
+		for (int i = returning.Count - 1; i >= 0 && excess > 0; i--)
+		{
+			Returning r = returning[i];
+			int take = Mathf.Min(excess, r.Count);
+			r.Count -= take;
+			excess -= take;
+			if (r.Count == 0)
+			{
+				returning.RemoveAt(i);
+			}
+			else
+			{
+				returning[i] = r;
+			}
+		}
 		while (excess > 0 && Parties.Count > 0)
 		{
 			WorkParty farthest = Parties[0];
@@ -136,7 +231,7 @@ public class City : MonoBehaviour
 				}
 			}
 			int removed = Mathf.Min(excess, farthest.Count);
-			farthest.Count -= removed;
+			farthest.RemovePops(removed);
 			excess -= removed;
 			if (farthest.Count == 0)
 			{
