@@ -7,4 +7,4 @@ Each release has its own tutorial, which you can find on the [project page](http
 
 ## Giving Credit
 
-This project has a [MIT-0 license](LICENSE.md), Please visit [Jasper Flick](https://catlikecoding.com/jasper-flick/) and/or [Catlike Coding](https://catlikecoding.com).
+This project has a [MIT-0 license](LICENSE.md). Please visit [Jasper Flick](https://catlikecoding.com/jasper-flick/) and/or [Catlike Coding](https://catlikecoding.com).
