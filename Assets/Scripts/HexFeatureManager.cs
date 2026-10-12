@@ -87,7 +87,7 @@ public class HexFeatureManager : MonoBehaviour
 	/// </summary>
 	/// <param name="cell">Cell with one or more features.</param>
 	/// <param name="position">Feature position.</param>
-	public void AddFeature(HexCellData cell, Vector3 position)
+	public void AddFeature(HexCellData cell, Vector3 position, int owner)
 	{
 		if (cell.IsSpecial)
 		{
@@ -137,6 +137,18 @@ public class HexFeatureManager : MonoBehaviour
 			HexMetrics.Perturb(position),
 			Quaternion.Euler(0f, 360f * hash.e, 0f));
 		instance.SetParent(container, false);
+		
+		if (owner != PlayerColors.Neutral)
+		{
+			foreach (Renderer r in instance.GetComponentsInChildren<Renderer>())
+			{
+				Material m = r.material;
+				Color c = PlayerColors.Colors[owner];
+				if (m.HasProperty("_Base_Color")) { m.SetColor("_Base_Color", c); }
+				else if (m.HasProperty("_BaseColor")) { m.SetColor("_BaseColor", c); }
+				else { m.color = c; }
+			}
+		}
 	}
 
 	/// <summary>

@@ -247,6 +247,26 @@ public struct HexCell
 		from.Elevation >= to.Elevation || from.WaterLevel == to.Elevation;
 
 	/// <summary>
+	/// City on the cell, if any.
+	/// </summary>
+	public readonly City City
+	{
+		get => grid.CellCities[index];
+		set => grid.CellCities[index] = value;
+	}
+	
+	
+	public readonly int Owner => grid.CellOwners[index];
+
+	public readonly void SetOwner(int owner)
+	{
+		if (grid.CellOwners[index] != owner)
+		{
+			grid.CellOwners[index] = owner;
+			Refresh();
+		}
+	}
+	/// <summary>
 	/// Set the outgoing river.
 	/// </summary>
 	/// <param name="direction">River direction.</param>
