@@ -18,11 +18,18 @@ public class GameController : MonoBehaviour
 	[SerializeField]
 	bool debugKeys = true;
 
-	void Start()
+	// 0 = new seed every game (it is logged); any other number replays that game.
+	[SerializeField]
+	int gameSeed = 0;
+
+	/// <summary>Begin a game on the current map: seed the rules, place start candidates.</summary>
+	public void StartNewGame()
 	{
+		GameRandom.Init(gameSeed != 0 ? gameSeed : System.Environment.TickCount);
+		Debug.Log($"Game seed: {GameRandom.Seed}");
 		PlaceCandidates();
 	}
-
+	
 	void Update()
 	{
 		if (debugKeys && GameState.Phase == GamePhase.Setup &&
@@ -36,13 +43,13 @@ public class GameController : MonoBehaviour
 				grid.SpawnCity(target);
 			}
 		}
-		// Re-roll candidates, only allowed before anyone has claimed.
-		if (Keyboard.current != null &&
+		// Temporary: until the start-game menu exists, G starts a game on
+		// the current map. Only before anyone has claimed.
+		if (debugKeys && Keyboard.current != null &&
 			Keyboard.current.gKey.wasPressedThisFrame &&
-			GameState.Phase == GamePhase.Setup &&
-			!AnyClaimed())
+			GameState.Phase == GamePhase.Setup && !AnyClaimed())
 		{
-			PlaceCandidates();
+			StartNewGame();
 		}
 	}
 
@@ -405,7 +412,7 @@ public class GameController : MonoBehaviour
 
 		if (farEnough.Count > 0)
 		{
-			return farEnough[Random.Range(0, farEnough.Count)];
+			return farEnough[GameRandom.Range(0, farEnough.Count)];
 		}
 		Debug.LogWarning(
 			$"Fallback used: best distance {farthestDistance} < minimum {minimumDistance}");

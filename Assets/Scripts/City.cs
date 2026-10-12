@@ -7,6 +7,7 @@ public class City : MonoBehaviour
 {
 	public const int StartingPopulation = 2;
 	public const int ComboHousing = 2;   // capacity the combo block adds
+	public const float StarvationChance = 0.5f;
 
 	public HexGrid Grid { get; set; }
 
@@ -104,7 +105,7 @@ public class City : MonoBehaviour
 	public int Food =>
 		Storage.Get(ResourceType.Grain) + Storage.Get(ResourceType.Meat);
 
-	public int VisionRange => 5;
+	public int VisionRange => 3;
 
 	int locationCellIndex = -1;
 	int owner = PlayerColors.Neutral;
@@ -172,12 +173,24 @@ public class City : MonoBehaviour
 		Storage.TrySpend(ResourceType.Grain, eaten - meatEaten);
 		int unfed = pop - eaten;
 
-		int weakUnfed = Mathf.Min(WeakPop, unfed);                   // die
-		int healthyUnfed = Mathf.Min(HealthyPop, unfed - weakUnfed); // weaken
+		// Only the unfed pops (the ones farthest from the storehouse) roll.
+		int weakUnfed = Mathf.Min(WeakPop, unfed);
+		int healthyUnfed = Mathf.Min(HealthyPop, unfed - weakUnfed);
 		int weakFed = WeakPop - weakUnfed;                           // recover
 
-		HealthyPop = (HealthyPop - healthyUnfed) + weakFed;
-		WeakPop = healthyUnfed;
+		int died = 0;
+		for (int i = 0; i < weakUnfed; i++)
+		{
+			if (GameRandom.Chance(StarvationChance)) died++;
+		}
+		int weakened = 0;
+		for (int i = 0; i < healthyUnfed; i++)
+		{
+			if (GameRandom.Chance(StarvationChance)) weakened++;
+		}
+
+		HealthyPop = (HealthyPop - weakened) + weakFed;
+		WeakPop = weakened + (weakUnfed - died);
 		TrimParties();
 
 		// Growth: 6 turns in a row of enough food and some to spare.
@@ -195,7 +208,8 @@ public class City : MonoBehaviour
 			surplusTurns = 0;
 		}
 		Debug.Log($"Player {Owner + 1} city fed: pop {Population} " +
-			$"(healthy {HealthyPop}, weak {WeakPop}), {weakUnfed} died, " +
+			$"(healthy {HealthyPop}, weak {WeakPop}), {weakened} weakened, " +
+			$"{died} died, " +
 			$"grain {Storage.Get(ResourceType.Grain)}, " +
 			$"meat {Storage.Get(ResourceType.Meat)}");
 	}
