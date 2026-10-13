@@ -23,11 +23,53 @@ public class GameController : MonoBehaviour
 	int gameSeed = 0;
 
 	/// <summary>Begin a game on the current map: seed the rules, place start candidates.</summary>
-	public void StartNewGame()
+	public void StartNewGame(int seed)
 	{
-		GameRandom.Init(gameSeed != 0 ? gameSeed : System.Environment.TickCount);
-		Debug.Log($"Game seed: {GameRandom.Seed}");
+		GameRandom.Init(seed);
+		Debug.Log($"Game seed: {seed}");
+		GameState.ResetState();
 		PlaceCandidates();
+	}
+	
+		/// <summary>
+	/// Turn one idle pop into an infantry unit at the city. The soldier stays
+	/// in the city's population: it eats and produces nothing.
+	/// </summary>
+	public bool TryTrainInfantry(City city)
+	{
+		if (!city || city.State != CityState.Claimed || city.Idle < 1)
+		{
+			return false;
+		}
+		HexCell spot = FreeSpotNear(city.Location);
+		if (!spot)
+		{
+			return false;
+		}
+		HexUnit unit = Instantiate(HexUnit.unitPrefab);
+		unit.Owner = city.Owner;
+		grid.AddUnit(unit, spot, Random.Range(0f, 360f));
+		city.Army.Add(unit);
+		return true;
+	}
+
+	// The city's own cell if free, else the first free land neighbor.
+	HexCell FreeSpotNear(HexCell origin)
+	{
+		if (!origin.Unit)
+		{
+			return origin;
+		}
+		for (HexDirection d = HexDirection.NE; d <= HexDirection.NW; d++)
+		{
+			if (origin.TryGetNeighbor(d, out HexCell n) &&
+				n.Flags.HasAll(HexFlags.Explorable) &&
+				!n.Values.IsUnderwater && !n.Unit)
+			{
+				return n;
+			}
+		}
+		return default;
 	}
 	
 	void Update()
@@ -49,7 +91,7 @@ public class GameController : MonoBehaviour
 			Keyboard.current.gKey.wasPressedThisFrame &&
 			GameState.Phase == GamePhase.Setup && !AnyClaimed())
 		{
-			StartNewGame();
+			StartNewGame(gameSeed != 0 ? gameSeed : System.Environment.TickCount);
 		}
 	}
 
@@ -132,6 +174,19 @@ public class GameController : MonoBehaviour
 				city.Feed();
 			}
 		}
+	}
+	
+	/// <summary>
+	/// End a player's turn and run their upkeep. One door for humans and agents.
+	/// </summary>
+	public bool TryEndTurn(int player)
+	{
+		if (!GameState.EndTurn(player))
+		{
+			return false;
+		}
+		RunUpkeep(player);
+		return true;
 	}
 
 	/// <summary>A forest pops can be sent to: land, trees, no city.</summary>
@@ -343,6 +398,8 @@ public class GameController : MonoBehaviour
 		site.Home.SendHome(site.Builders, site.TravelTurns);
 		site.Dispose();
 	}
+	
+	
 
 
 	bool AnyClaimed()
@@ -418,4 +475,6 @@ public class GameController : MonoBehaviour
 			$"Fallback used: best distance {farthestDistance} < minimum {minimumDistance}");
 		return farthest;
 	}
+	
+	
 }

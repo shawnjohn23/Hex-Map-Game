@@ -37,12 +37,16 @@ public class City : MonoBehaviour
 			{
 				total += site.Builders;
 			}
-			return total;
+			return total + Army.Count;
 		}
 	}
 
 	/// <summary>Construction sites this city sent builders to.</summary>
 	public List<ConstructionSite> Sites { get; } = new();
+
+	/// <summary>Soldiers trained here. They eat but produce nothing.</summary>
+	public List<HexUnit> Army { get; } = new();
+	public int Soldiers => Army.Count;
 
 	struct Returning
 	{
@@ -166,6 +170,7 @@ public class City : MonoBehaviour
 	/// </summary>
 	public void Feed()
 	{
+		Army.RemoveAll(unit => !unit);
 		int pop = Population;
 		int eaten = Mathf.Min(pop, Food);
 		int meatEaten = Mathf.Min(eaten, Storage.Get(ResourceType.Meat));
@@ -234,16 +239,42 @@ public class City : MonoBehaviour
 				returning[i] = r;
 			}
 		}
-		while (excess > 0 && Parties.Count > 0)
+		// Farthest group first, whether a work party or a soldier. Ties go to
+		// the worker, then to whichever is first in its list, so the order
+		// is always the same.
+		while (excess > 0 && (Parties.Count > 0 || Army.Count > 0))
 		{
-			WorkParty farthest = Parties[0];
+			HexUnit farSoldier = null;
+			int soldierDistance = -1;
+			foreach (HexUnit soldier in Army)
+			{
+				int d = soldier.Location.Coordinates.DistanceTo(
+					Location.Coordinates);
+				if (d > soldierDistance)
+				{
+					soldierDistance = d;
+					farSoldier = soldier;
+				}
+			}
+			WorkParty farthest = null;
+			int partyDistance = -1;
 			foreach (WorkParty party in Parties)
 			{
-				if (party.Distance > farthest.Distance)
+				if (party.Distance > partyDistance)
 				{
+					partyDistance = party.Distance;
 					farthest = party;
 				}
 			}
+			
+			if (farSoldier && soldierDistance > partyDistance)
+			{
+				Army.Remove(farSoldier);
+				Grid.RemoveUnit(farSoldier);
+				excess--;
+				continue;
+			}
+
 			int removed = Mathf.Min(excess, farthest.Count);
 			farthest.RemovePops(removed);
 			excess -= removed;

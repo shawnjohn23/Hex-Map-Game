@@ -252,8 +252,25 @@ public class HexMapEditor : MonoBehaviour
 		);
 	}
 
+
 	void ClearCellHighlightData() => Shader.SetGlobalVector(
 		cellHighlightingId, new Vector4(0f, 0f, -1f, 0f));
+
+	/// <summary>Switch between map editing and playing (used by the main menu).</summary>
+	public void SetEditing(bool editing)
+	{
+		VisualElement root = sidePanels.rootVisualElement;
+		root.style.display = editing ? DisplayStyle.Flex : DisplayStyle.None;
+		root.Q<Toggle>("EditMode").SetValueWithoutNotify(editing);
+		enabled = editing;
+		gameUI.SetEditMode(editing);
+		if (!editing)
+		{
+			ClearCellHighlightData();
+		}
+	}
+
+
 
 	void ValidateDrag(HexCell currentCell)
 	{

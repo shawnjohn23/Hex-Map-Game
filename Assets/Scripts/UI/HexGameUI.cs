@@ -69,10 +69,8 @@ public class HexGameUI : MonoBehaviour
 			if (Keyboard.current.enterKey.wasPressedThisFrame)
 			{
 				// Only accepted during Playing, and only for the current player.
-				int endingPlayer = GameState.CurrentPlayer;
-				if (GameState.EndTurn(endingPlayer))
+				if (gameController.TryEndTurn(GameState.CurrentPlayer))
 				{
-					gameController.RunUpkeep(endingPlayer);
 					CloseMenu();
 					selectedUnit = null;
 					grid.ClearPath();
@@ -129,6 +127,10 @@ public class HexGameUI : MonoBehaviour
 
 	void CloseMenu() => menuCell = default;
 
+	bool IsOwnCity(HexCell cell) =>
+		cell.City && cell.City.State == CityState.Claimed &&
+		cell.City.Owner == GameState.CurrentPlayer;
+		
 	// IMGUI doesn't block Input System clicks, so check the menu ourselves.
 	bool PointerOverMenu()
 	{
@@ -145,6 +147,11 @@ public class HexGameUI : MonoBehaviour
 	void OnGUI()
 	{
 		GUI.matrix = Matrix4x4.Scale(new Vector3(uiScale, uiScale, 1f));
+		if (GameState.Phase == GamePhase.Setup)
+		{
+			GUI.Box(new Rect(10, 10, 360, 30),
+				$"Player {GameState.CurrentPlayer + 1}: click a city to claim it");
+		}
 		if (GameState.Phase == GamePhase.Playing)
 		{
 			GUI.Box(new Rect(10, 10, 260, 52),
@@ -169,6 +176,11 @@ public class HexGameUI : MonoBehaviour
 			return;
 		}
 		int player = GameState.CurrentPlayer;
+		if (menuCell.City)
+		{
+			DrawCityMenu();
+			return;
+		}
 		if (!gameController.IsWorkable(menuCell, player))
 		{
 			DrawBuildMenu();
@@ -246,6 +258,8 @@ public class HexGameUI : MonoBehaviour
 	}
 
 	static readonly BuildKind[] BuildOptions = { BuildKind.Farm, BuildKind.House };
+	
+	
 
 	// Menu for an empty, legal building cell: pick what to build there.
 	void DrawBuildMenu()
@@ -286,6 +300,38 @@ public class HexGameUI : MonoBehaviour
 			CloseMenu();
 		}
 	}
+	
+	
+	// Menu for your own city: train infantry from an idle pop.
+	void DrawCityMenu()
+	{
+		City city = menuCell.City;
+		menuRect = new Rect(10, 70, MenuWidth, Pad * 2 + RowHeight * 3);
+		GUI.Box(menuRect, GUIContent.none);
+
+		float x = menuRect.x + Pad;
+		float y = menuRect.y + Pad;
+		float w = MenuWidth - Pad * 2;
+		float h = RowHeight - 2;
+
+		GUI.Label(new Rect(x, y, w, RowHeight),
+			$"City: pop {city.Population}/{city.PopulationCapacity}, " +
+			$"{city.Soldiers} soldiers, {city.Idle} idle");
+		y += RowHeight;
+
+		GUI.enabled = city.Idle > 0;
+		if (GUI.Button(new Rect(x, y, w, h), "Train infantry (1 idle pop)"))
+		{
+			gameController.TryTrainInfantry(city);
+		}
+		GUI.enabled = true;
+		y += RowHeight;
+
+		if (GUI.Button(new Rect(x, y, w, h), "Close"))
+		{
+			CloseMenu();
+		}
+	}
 
 	void DoSelection()
 	{
@@ -311,7 +357,8 @@ public class HexGameUI : MonoBehaviour
 				unit && unit.Owner == GameState.CurrentPlayer &&
 				unit.CanMoveThisTurn ? unit : null;
 			if (!selectedUnit &&
-				(gameController.IsWorkable(currentCell, GameState.CurrentPlayer) ||
+				(IsOwnCity(currentCell) ||
+				gameController.IsWorkable(currentCell, GameState.CurrentPlayer) ||
 				gameController.IsBuildable(currentCell, GameState.CurrentPlayer)))
 			{
 				menuCell = currentCell;

@@ -107,6 +107,19 @@ public class HexMapGenerator : MonoBehaviour
 
 		Random.state = originalRandomState;
 	}
+	
+	/// <summary>Generate the same map every time for a given seed.</summary>
+	public void GenerateMap(
+		int x, int z, bool wrapping, bool experimental, int seed)
+	{
+		bool wasFixed = settings.useFixedSeed;
+		int oldSeed = settings.seed;
+		settings.useFixedSeed = true;
+		settings.seed = seed;
+		GenerateMap(x, z, wrapping, experimental);
+		settings.useFixedSeed = wasFixed;
+		settings.seed = oldSeed;
+	}
 
 	void CreateRegions()
 	{

@@ -20,7 +20,7 @@ public static class GameState
 
 	[RuntimeInitializeOnLoadMethod(
 		RuntimeInitializeLoadType.SubsystemRegistration)]
-	static void ResetState()
+	public static void ResetState()
 	{
 		Phase = GamePhase.Setup;
 		CurrentPlayer = SetupFirstPlayer;
